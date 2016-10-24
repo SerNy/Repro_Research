@@ -1,0 +1,132 @@
+---
+title: "Reproductible Reaseatch_Project1"
+author: "Serge NYOKA"
+date: "23 octobre 2016"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+library(knitr)
+opts_chunk$set(fig.width=12, fig.height=8, warning=FALSE, messsage=FALSE)
+```
+    
+Reproductible Research : Course Project 1
+
+## 1. Loading and preprocessing the data
+
+```{r}
+#Reading data file in the csv format.
+dt_activity <- read.csv("activity.csv")
+str(dt_activity)
+```
+
+
+## 2. What is mean total number of steps taken per day ?
+
+```{r}
+#Summing the steps for each day. 60 observations for 60 days 
+steps_daily <- aggregate(steps ~ date, dt_activity, sum) 
+head(steps_daily)
+```
+
+Plotting Histogram
+
+```{r echo=FALSE}
+hist(steps_daily$steps, main = "Total number of steps per day", xlab = "Number of steps", col = 5)
+```
+
+#The mean is equal to 10766 and the median to  10765
+summary(steps_daily)
+
+
+## 3. What is the average daily activity pattern ?
+
+
+```{r}
+#Calculating the mean and the median of the total numberof steps per day
+steps_mean <- mean(steps_daily$steps)
+steps_median <- median(steps_daily$steps)
+
+#For all days and for each interval we calculate the average steps
+steps_interval <- aggregate(steps ~ interval, dt_activity, mean)
+```
+
+Plotting the average number of steps per day for each interval
+
+```{r echo=FALSE}
+plot(steps_interval$interval, steps_interval$steps, type = "l", xlab = "Interval", ylab = "Average steps number", main = "Average of each day steps's number by interval", col = "blue")
+```
+
+```{r}
+#Compute the maximum average steps of intervals
+interval_maximum <- steps_interval[which.max(steps_interval$steps), 1]
+interval_maximum 
+```
+
+## 4. Imputing missing values
+
+```{r}
+#Calculating and reporting the total number of missing value
+missing_data_number <- sum(!complete.cases(dt_activity))
+missing_data_number
+
+dt_activity_imput <- transform(dt_activity, steps = ifelse(is.na(dt_activity$steps), steps_interval$steps[match(dt_activity$interval, steps_interval$interval)], dt_activity$steps))
+dt_activity_imput[as.character(dt_activity_imput$date) == "2012-10-01", 1] <- 0
+
+#Compute total steps per day imputed
+steps_daily_imput <- aggregate(steps ~ date, dt_activity_imput, sum)
+```
+```{r}
+head(dt_activity_imput)
+```
+Visualizing the imputed data without all NAs
+
+
+#Histogram of total number steps for each day
+
+```{r echo=FALSE}
+hist(steps_daily_imput$steps, xlab = "Number of steps", col = "gray", main = "Total number of steps per day")
+```
+
+```{r}
+#Calculate and report the mean and median total number of steps taken per day
+steps_mean_imput <- mean(steps_daily_imput$steps)
+steps_mean_imput
+
+steps_median_imput <- median(steps_daily_imput$steps)
+steps_median_imput
+
+#Difference between mean, median and total number steps of the 2 dataset (imputed and non-imputed)
+delta_mean <- steps_mean_imput - steps_mean
+delta_mean
+
+delta_median <- steps_median_imput - steps_median
+delta_median
+
+delta_steps <- sum(steps_daily_imput$steps) - sum(steps_daily$steps)
+delta_steps
+```
+
+## 5. Are there differences in actyivity patterns between weekdays and weekends ?
+
+Differences %in% activity patterns between weekdays and weekends
+```{r}
+dayPos <- weekdays(as.Date(dt_activity_imput$date))
+for(i in 1:length(dayPos)) {
+  if(dayPos[i] %in% c("samedi", "dimanche")) dayPos[i] = "weekend"
+  else dayPos[i] = "weekday"
+}
+
+dt_activity_imput$dayPosition <- as.factor(dayPos)
+
+steps_interval_imput <- aggregate(steps ~ interval + dayPosition, dt_activity_imput, mean)
+
+library(lattice)
+```
+
+Plotting ...
+  
+```{r echo=FALSE}  
+xyplot(steps_interval_imput$steps ~ steps_interval_imput$interval|steps_interval_imput$dayPosition, xlab = "Interval", ylab = "steps", main = "Average steps for each day by interval", layout = c(1,2), type = "l")
+```
+The difference is visible on these 2 charts 
